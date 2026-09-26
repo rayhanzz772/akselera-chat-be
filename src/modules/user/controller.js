@@ -68,8 +68,9 @@ class Controller {
       return res.status(HTTP_OK).json(api(result))
     }
     catch (err) {
-      console.error(err)
-      const code = err?.code ?? HttpStatusCode.InternalServerError
+      const code = typeof err?.code === 'number'
+        ? err.code
+        : HttpStatusCode.InternalServerError
       return res.status(code).json(api(null, code, { err }))
     }
   }

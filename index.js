@@ -8,6 +8,7 @@ const route = require('./src/routes')
 const { createServer } = require('node:http')
 const cookieParser = require('cookie-parser')
 const helmet = require('helmet')
+const { initializeSocket } = require('./src/utils/socket')
 
 const mode = process.env.NODE_ENV || 'development'
 const allowedOriginsRaw = process.env.ALLOWED_ORIGINS || ''
@@ -89,6 +90,11 @@ app.use((req, res) => {
 
 const port = process.env.PORT || 8001
 const server = createServer(app)
+const socketCors = mode === 'production' && !allowAll
+  ? { origin: allowedOrigins, credentials: true }
+  : { origin: true, credentials: true }
+
+initializeSocket(server, socketCors)
 
 server.listen(port, () => {
   console.log(`Server Running ⚡ PORT : ${port}`)

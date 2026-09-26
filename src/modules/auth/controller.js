@@ -53,6 +53,7 @@ class Controller {
         id: user.id,
         name: user.name,
         email: user.email,
+        token: token,
         createdAt: user.createdAt,
       }
 
@@ -123,7 +124,10 @@ class Controller {
       await User.create({
         name: validateData.name,
         email: validateData.email,
-        password_hash: hashedPassword
+        password_hash: hashedPassword,
+        public_key: validateData.public_key,
+        encrypted_private_key: validateData.encrypted_private_key,
+        key_derivation_salt: validateData.key_derivation_salt
       })
       return res.status(HttpStatusCode.Created).json(api(null, HttpStatusCode.Created, { req }))
     } catch (err) {

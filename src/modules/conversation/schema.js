@@ -3,7 +3,7 @@
 const { z } = require('zod')
 
 const createConversationSchema = z.object({
-	member_ids: z.array(z.string().uuid()).default([])
+	member_email: z.string().email({ message: 'Invalid email address' })
 })
 
 module.exports = {

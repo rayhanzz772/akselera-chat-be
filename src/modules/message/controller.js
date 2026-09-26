@@ -3,6 +3,10 @@ const db = require('../../../db/models')
 const { HttpStatusCode } = require('axios')
 const { randomUUID } = require('node:crypto')
 const { createMessageSchema } = require('./schema')
+const {
+  emitNewMessage,
+  emitConversationUpdated
+} = require('../../../src/utils/socket')
 
 const queryType = db.Sequelize.QueryTypes.SELECT
 
@@ -55,6 +59,9 @@ class Controller {
           }
         }
       )
+
+      emitNewMessage(rows[0])
+      await emitConversationUpdated(rows[0])
 
       return res
         .status(HttpStatusCode.Created)
