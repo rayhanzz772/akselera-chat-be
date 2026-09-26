@@ -1,0 +1,44 @@
+{
+  "name": "express-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "migrate": "npx sequelize-cli db:migrate",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "seed": "npx sequelize-cli db:seed:all",
+    "seed:undo": "npx sequelize-cli db:seed:undo:all",
+    "model:make": "npx sequelize-cli model:generate --name",
+    "migration:make": "npx sequelize-cli migration:generate --name",
+    "seed:make": "npx sequelize-cli seed:generate --name",
+    "make:full": "npm run model:make -- --name",
+    "make:seed": "npm run seed:make -- --name",
+    "make:all": "node src/scripts/make-all.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "argon2": "^0.45.1",
+    "axios": "^1.12.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "cuid": "^3.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "mysql2": "^3.15.3",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7",
+    "sequelize-cli": "^6.6.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
