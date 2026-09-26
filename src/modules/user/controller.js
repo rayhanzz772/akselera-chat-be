@@ -14,8 +14,12 @@ class Controller {
       const offset = (page - 1) * limit
       const q = req.query.q || null
 
-      const conditions = ['u.deleted_at IS NULL']
-      const replacements = { limit, offset }
+      const userId = req.user.id
+      const conditions = [
+        'u.deleted_at IS NULL',
+        'u.id <> :userId'
+      ];
+      const replacements = { limit, offset, userId }
 
       if (q) {
         conditions.push(`
