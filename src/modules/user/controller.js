@@ -20,7 +20,7 @@ class Controller {
       if (q) {
         conditions.push(`
         (
-          LOWER(u.username) LIKE LOWER(:search)
+          LOWER(u.name) LIKE LOWER(:search)
         )
       `)
         replacements.search = `%${q.toLowerCase()}%`
@@ -34,7 +34,7 @@ class Controller {
         `
         SELECT
           u.id,
-          u.username,
+          u.name,
           u.email
         FROM users u
         ${whereClause}
