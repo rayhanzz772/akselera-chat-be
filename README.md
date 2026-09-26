@@ -191,7 +191,7 @@ Migration utama membuat tabel berikut:
 
 ### users
 
-Menyimpan identity user, email, Argon2id password hash, public key, encrypted private key, dan key derivation salt.
+Menyimpan identity user, email, Argon2id password hash, public key, encrypted private key, dan key derivation salt. Kolom `last_seen_at` diisi saat user terputus dari Socket.IO dan digunakan untuk menampilkan status terakhir dilihat.
 
 ### conversations
 
@@ -312,6 +312,20 @@ POST /api/v1/auth/logout
 GET /api/v1/users
 ```
 
+Setiap user menyertakan status online:
+
+```json
+{
+  "id": "user-uuid",
+  "name": "Dimas",
+  "email": "dimas@example.com",
+  "last_seen_at": "2026-09-26T12:07:30.673Z",
+  "is_online": false
+}
+```
+
+`last_seen_at` bernilai `null` ketika user sedang online atau belum pernah terlihat. Gunakan `is_online` sebagai penentu utama.
+
 ### Conversations
 
 Semua endpoint conversation membutuhkan authentication.
@@ -342,7 +356,9 @@ Response menyediakan opponent, last message, dan unread counter:
         "id": "user-uuid",
         "name": "Dimas",
         "email": "dimas@example.com",
-        "public_key": "client-public-key"
+        "public_key": "client-public-key",
+        "is_online": true,
+        "last_seen_at": null
       },
       "last_message": null,
       "unread_count": 0
@@ -351,7 +367,7 @@ Response menyediakan opponent, last message, dan unread counter:
 }
 ```
 
-Conversation diurutkan berdasarkan message terakhir. Conversation tanpa message berada setelah conversation yang memiliki message.
+Conversation diurutkan berdasarkan message terakhir. Conversation tanpa message berada setelah conversation yang memiliki message. Nilai `is_online` dan `last_seen_at` pada `opponent` mengikuti aturan yang sama dengan endpoint users.
 
 #### Create conversation
 
@@ -481,11 +497,40 @@ Payload utama `conversation:updated`:
 }
 ```
 
+### Online status
+
+Server melacak koneksi socket per user. User dianggap online selama minimal satu socket masih terhubung, sehingga membuka beberapa tab atau device tidak membuat status berkedip offline.
+
+Tiga event yang tersedia:
+
+```javascript
+// Dikirim ke socket yang baru terhubung, berisi status seluruh lawan bicara.
+socket.on('presence:sync', ({ presence }) => {
+  // presence: [{ user_id, is_online, last_seen_at }]
+})
+
+// Dikirim saat lawan bicara online atau offline.
+socket.on('presence:update', ({ user_id, is_online, last_seen_at }) => {
+  // Perbarui indicator pada conversation terkait.
+})
+
+// Menanyakan status user tertentu secara langsung.
+socket.emit('presence:get', [userId1, userId2], (response) => {
+  // { success: true, presence: [{ user_id, is_online, last_seen_at }] }
+})
+```
+
+Permintaan `presence:get` menerima 1 sampai 100 user ID. User yang tidak dikenal atau sudah dihapus tetap dikembalikan dengan `is_online: false` dan `last_seen_at: null`.
+
+`last_seen_at` berisi waktu koneksi terakhir dan bernilai `null` selama user online atau belum pernah terlihat. Client sebaiknya memeriksa `is_online` terlebih dahulu, lalu menampilkan `last_seen_at` hanya ketika user offline.
+
+Perubahan status hanya disebarkan kepada user yang memiliki conversation bersama, bukan ke seluruh client.
+
 ### Room design
 
 ```text
 conversation:<conversationId>  # message:new
-user:<userId>                   # conversation:updated dan deleted
+user:<userId>                   # conversation:updated, conversation:deleted, dan presence:update
 ```
 
 ## Security
@@ -497,6 +542,7 @@ user:<userId>                   # conversation:updated dan deleted
 - `sender_id` tidak boleh dipalsukan melalui request body.
 - Message plaintext tidak diproses atau didekripsi backend.
 - Response user tidak mengekspos `password_hash` atau private key.
+- Status online hanya disebarkan kepada member conversation yang sama, bukan ke seluruh client.
 - Query database menggunakan parameterized replacements untuk mengurangi risiko SQL injection.
 - Secret dan credential hanya berasal dari environment variable.
 - Helmet dan CORS digunakan sebagai lapisan security HTTP.
@@ -598,6 +644,10 @@ Pastikan client mengirim JWT pada `auth.token` atau cookie `token`, dan secret y
 ## Catatan Pengembangan
 
 Backend sengaja tidak melakukan dekripsi message. Kunci enkripsi tetap berada di client dan tidak dikirim ke server. Dengan pendekatan ini, database hanya menyimpan encrypted payload sehingga backend tidak memiliki akses ke plaintext message.
+
+Status online disimpan di memory proses (`src/utils/presence.js`), sehingga pelacakan koneksi hanya akurat untuk satu instance. Jika backend dijalankan di beberapa instance sekaligus, diperlukan shared store seperti Redis beserta adapter Socket.IO. Registry koneksi sengaja dipisahkan pada modul tersendiri agar dapat diganti tanpa mengubah `src/utils/socket.js` atau controller.
+
+`last_seen_at` hanya diperbarui pada disconnect yang bersih. Jika proses berhenti paksa (crash atau `SIGKILL`), timestamp terakhir tidak ikut diperbarui.
 
 Untuk production, disarankan menambahkan automated tests, rate limiting pada authentication, centralized error middleware, structured logging, secret rotation, dan observability untuk Socket.IO.
 

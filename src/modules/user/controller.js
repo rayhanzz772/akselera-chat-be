@@ -3,6 +3,7 @@ const db = require('../../../db/models')
 const { HttpStatusCode } = require('axios')
 // const { listSchema } = require('./schema')
 const { validateRequest } = require('../../../src/utils/validation')
+const { presenceMapFor } = require('../../../src/utils/presence')
 
 const HTTP_OK = HttpStatusCode.Ok
 
@@ -39,7 +40,8 @@ class Controller {
         SELECT
           u.id,
           u.name,
-          u.email
+          u.email,
+          u.last_seen_at
         FROM users u
         ${whereClause}
         ORDER BY u.id DESC
@@ -64,9 +66,17 @@ class Controller {
         }
       )
 
+      const presence = await presenceMapFor(results.map((row) => row.id))
+
+      const rows = results.map((row) => ({
+        ...row,
+        is_online: presence.get(row.id)?.is_online ?? false,
+        last_seen_at: presence.get(row.id)?.last_seen_at ?? null
+      }))
+
       const result = {
         count: parseInt(countResult[0].total, 10),
-        rows: results,
+        rows,
       }
 
       return res.status(HTTP_OK).json(api(result))

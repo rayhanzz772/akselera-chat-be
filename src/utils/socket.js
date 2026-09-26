@@ -2,9 +2,17 @@ const jwt = require('jsonwebtoken')
 const { Server } = require('socket.io')
 const { z } = require('zod')
 const db = require('../../db/models')
+const {
+  addConnection,
+  removeConnection,
+  isOnline,
+  findConversationPartnerIds,
+  buildPresenceFor
+} = require('./presence')
 
 let io
 const conversationIdSchema = z.string().uuid()
+const presenceUserIdsSchema = z.array(z.string().uuid()).min(1).max(100)
 
 function getCookieToken(cookieHeader) {
   const token = cookieHeader?.match(/(?:^|;\s*)token=([^;]+)/)?.[1]
@@ -43,6 +51,67 @@ async function isConversationMember(conversationId, userId) {
   return rows.length > 0
 }
 
+async function broadcastPresence(userId, online, partnerIds) {
+  if (!io) return
+
+  // A reconnect can land between removeConnection() and this call.
+  if (!online && isOnline(userId)) return
+
+  try {
+    const recipients = partnerIds ?? await findConversationPartnerIds(userId)
+    if (recipients.length === 0) return
+
+    let lastSeenAt = null
+
+    if (!online) {
+      const rows = await db.sequelize.query(
+        `
+          UPDATE users
+          SET last_seen_at = CURRENT_TIMESTAMP,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = :userId
+            AND deleted_at IS NULL
+          RETURNING last_seen_at
+        `,
+        {
+          type: db.Sequelize.QueryTypes.SELECT,
+          replacements: { userId }
+        }
+      )
+
+      lastSeenAt = rows[0]?.last_seen_at ?? null
+    }
+
+    const payload = {
+      user_id: userId,
+      is_online: online,
+      last_seen_at: lastSeenAt
+    }
+
+    recipients.forEach((partnerId) => {
+      io.to(userRoomName(partnerId)).emit('presence:update', payload)
+    })
+  } catch (error) {
+    console.error('Socket presence broadcast error:', error.message)
+  }
+}
+
+async function syncPresenceOnConnect(socket, userId, becameOnline) {
+  try {
+    const partnerIds = await findConversationPartnerIds(userId)
+
+    if (becameOnline) {
+      await broadcastPresence(userId, true, partnerIds)
+    }
+
+    socket.emit('presence:sync', {
+      presence: await buildPresenceFor(partnerIds)
+    })
+  } catch (error) {
+    console.error('Socket presence sync error:', error.message)
+  }
+}
+
 function initializeSocket(server, corsOptions) {
   io = new Server(server, {
     cors: corsOptions
@@ -64,7 +133,35 @@ function initializeSocket(server, corsOptions) {
   })
 
   io.on('connection', (socket) => {
-    socket.join(userRoomName(socket.user.userId))
+    const userId = socket.user.userId
+
+    socket.join(userRoomName(userId))
+
+    const becameOnline = addConnection(userId, socket.id)
+    syncPresenceOnConnect(socket, userId, becameOnline)
+
+    socket.on('presence:get', async (userIds, callback = () => {}) => {
+      const validation = presenceUserIdsSchema.safeParse(userIds)
+      if (!validation.success) {
+        return callback({
+          success: false,
+          message: 'user_ids must be an array of 1 to 100 valid user IDs'
+        })
+      }
+
+      try {
+        const presence = await buildPresenceFor(validation.data)
+        callback({ success: true, presence })
+      } catch {
+        callback({ success: false, message: 'Unable to retrieve presence' })
+      }
+    })
+
+    socket.on('disconnect', () => {
+      if (removeConnection(userId, socket.id)) {
+        broadcastPresence(userId, false)
+      }
+    })
 
     socket.on('conversation:join', async (conversationId, callback = () => {}) => {
       const validation = conversationIdSchema.safeParse(conversationId)

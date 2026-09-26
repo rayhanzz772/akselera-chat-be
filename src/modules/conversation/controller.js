@@ -5,6 +5,7 @@ const { randomUUID } = require('node:crypto')
 const { validateRequest } = require('../../../src/utils/validation')
 const { createConversationSchema } = require('./schema')
 const { emitConversationDeleted } = require('../../../src/utils/socket')
+const { presenceMapFor } = require('../../../src/utils/presence')
 
 const HTTP_OK = HttpStatusCode.Ok
 
@@ -108,9 +109,24 @@ class Controller {
         }
       )
 
+      const presence = await presenceMapFor(
+        conversations.map((conversation) => conversation.opponent?.id).filter(Boolean)
+      )
+
+      const rows = conversations.map((conversation) => ({
+        ...conversation,
+        opponent: conversation.opponent
+          ? {
+              ...conversation.opponent,
+              is_online: presence.get(conversation.opponent.id)?.is_online ?? false,
+              last_seen_at: presence.get(conversation.opponent.id)?.last_seen_at ?? null
+            }
+          : null
+      }))
+
       const response = api({
         count: Number(countResult[0]?.total || 0),
-        rows: conversations
+        rows
       }, HTTP_OK, { req })
       response.message = 'Conversations retrieved successfully'
 
