@@ -401,3 +401,7 @@ Frontend berjalan di `http://localhost:3000`. Karena keduanya di `localhost`, `S
 - `NEXT_PUBLIC_API_URL` dan `NEXT_PUBLIC_SOCKET_URL` harus dipointing ke domain HTTPS yang sama dengan sertifikat valid
 - Redis adapter perlu dikonfigurasi bila backend dijalankan lebih dari satu instance
 - Backup database di sisi backend tetap terenkripsi — kehilangan kunci privat di sisi frontend berarti kehilangan akses ke pesan lama secara permanen, backup tidak bisa menolong ini
+
+---
+
+## Made by Rayhan
