@@ -501,6 +501,13 @@ docker compose down -v
 
 ---
 
+## 🤖 AI Tools yang digunakan
+
+- Claude Code
+- Github Copilot
+
+---
+
 ## ⚠️ Catatan Sebelum Production
 
 - **Wajib HTTPS untuk keduanya** — tanpa ini, `SubtleCrypto` di frontend tidak berfungsi, dan tidak ada request valid yang bisa sampai ke backend
