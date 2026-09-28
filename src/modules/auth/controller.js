@@ -95,6 +95,9 @@ class Controller {
         id: user.id,
         name: user.name,
         email: user.email,
+        encrypted_private_key: user.encrypted_private_key,
+        public_key: user.public_key,
+        key_derivation_salt: user.key_derivation_salt
       }
 
       return res
