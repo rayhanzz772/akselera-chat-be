@@ -1,0 +1,65 @@
+# Dependencies (rebuilt inside Docker)
+node_modules/
+
+# Version control
+.git/
+.gitignore
+
+# Environment files (never bake into the image)
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Test / coverage (not needed in the image)
+coverage/
+.nyc_output/
+TEST*.xml
+
+# Build artifacts
+dist/
+
+# Media
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# Lock files are kept (npm ci needs package-lock.json)
+yarn.lock
+pnpm-lock.yaml
+
+# WhatsApp caches
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Docker itself
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Compiled bytecode (irrelevant for Node)
+*.class
+*.py[cod]
+*.jar
+
+# Package archives
+*.war
+*.app
+*.exe

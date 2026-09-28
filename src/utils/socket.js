@@ -139,6 +139,7 @@ function initializeSocket(server, corsOptions) {
 
     const becameOnline = addConnection(userId, socket.id)
     syncPresenceOnConnect(socket, userId, becameOnline)
+    syncUnreadOnConnect(socket, userId)
 
     socket.on('presence:get', async (userIds, callback = () => {}) => {
       const validation = presenceUserIdsSchema.safeParse(userIds)
@@ -238,6 +239,68 @@ async function emitConversationUpdated(message) {
   }
 }
 
+async function emitUnreadUpdated(userId) {
+  if (!io) return
+
+  try {
+    const result = await db.sequelize.query(
+      `
+        SELECT COUNT(*)::int AS total_unread
+        FROM messages m
+        JOIN conversation_members cm
+          ON cm.conversation_id = m.conversation_id
+         AND cm.user_id = :userId
+        WHERE m.sender_id <> :userId
+          AND (cm.last_read_at IS NULL OR m.created_at > cm.last_read_at)
+      `,
+      {
+        type: db.Sequelize.QueryTypes.SELECT,
+        replacements: { userId }
+      }
+    )
+
+    io.to(userRoomName(userId)).emit('unread:updated', {
+      total_unread: result[0]?.total_unread ?? 0
+    })
+  } catch (error) {
+    console.error('Socket unread updated error:', error.message)
+  }
+}
+
+async function emitUnreadBatchUpdated(userIds) {
+  if (!io || !userIds.length) return
+
+  for (const userId of userIds) {
+    await emitUnreadUpdated(userId)
+  }
+}
+
+async function syncUnreadOnConnect(socket, userId) {
+  try {
+    const result = await db.sequelize.query(
+      `
+        SELECT COUNT(*)::int AS total_unread
+        FROM messages m
+        JOIN conversation_members cm
+          ON cm.conversation_id = m.conversation_id
+         AND cm.user_id = :userId
+        WHERE m.sender_id <> :userId
+          AND (cm.last_read_at IS NULL OR m.created_at > cm.last_read_at)
+      `,
+      {
+        type: db.Sequelize.QueryTypes.SELECT,
+        replacements: { userId }
+      }
+    )
+
+    socket.emit('unread:sync', {
+      total_unread: result[0]?.total_unread ?? 0
+    })
+  } catch (error) {
+    console.error('Socket unread sync error:', error.message)
+  }
+}
+
 async function emitConversationDeleted(conversationId, userIds) {
   if (!io) return
 
@@ -253,5 +316,7 @@ module.exports = {
   emitNewMessage,
   emitConversationUpdated,
   emitConversationDeleted,
+  emitUnreadUpdated,
+  emitUnreadBatchUpdated,
   roomName
 }

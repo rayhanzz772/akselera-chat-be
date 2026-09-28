@@ -4,7 +4,7 @@ const { HttpStatusCode } = require('axios')
 const { randomUUID } = require('node:crypto')
 const { validateRequest } = require('../../../src/utils/validation')
 const { createConversationSchema } = require('./schema')
-const { emitConversationDeleted } = require('../../../src/utils/socket')
+const { emitConversationDeleted, emitUnreadUpdated, emitUnreadBatchUpdated } = require('../../../src/utils/socket')
 const { presenceMapFor } = require('../../../src/utils/presence')
 
 const HTTP_OK = HttpStatusCode.Ok
@@ -157,6 +157,8 @@ class Controller {
         }
       )
 
+      await emitUnreadUpdated(req.user.id)
+
       return res.status(HTTP_OK).json(api({
         conversation_id: req.conversationId,
         unread_count: 0
@@ -197,10 +199,10 @@ class Controller {
       )
 
       await transaction.commit()
-      await emitConversationDeleted(
-        req.conversationId,
-        members.map(({ user_id: userId }) => userId)
-      )
+
+      const memberIds = members.map(({ user_id: userId }) => userId)
+      await emitConversationDeleted(req.conversationId, memberIds)
+      await emitUnreadBatchUpdated(memberIds)
 
       return res.status(HTTP_OK).json(api({
         conversation_id: req.conversationId,

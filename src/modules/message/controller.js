@@ -5,7 +5,8 @@ const { randomUUID } = require('node:crypto')
 const { createMessageSchema } = require('./schema')
 const {
   emitNewMessage,
-  emitConversationUpdated
+  emitConversationUpdated,
+  emitUnreadUpdated
 } = require('../../../src/utils/socket')
 
 const queryType = db.Sequelize.QueryTypes.SELECT
@@ -62,6 +63,26 @@ class Controller {
 
       emitNewMessage(rows[0])
       await emitConversationUpdated(rows[0])
+
+      const otherMembers = await db.sequelize.query(
+        `
+          SELECT user_id
+          FROM conversation_members
+          WHERE conversation_id = :conversationId
+            AND user_id <> :senderId
+        `,
+        {
+          type: queryType,
+          replacements: {
+            conversationId: req.conversationId,
+            senderId: req.user.id
+          }
+        }
+      )
+
+      for (const { user_id: memberId } of otherMembers) {
+        await emitUnreadUpdated(memberId)
+      }
 
       return res
         .status(HttpStatusCode.Created)

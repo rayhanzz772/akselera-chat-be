@@ -33,6 +33,7 @@ Server menyimpan ciphertext. Kunci privat tidak pernah meninggalkan perangkat.
 - [Kontrak API](#-kontrak-api)
 - [Event Socket.IO](#-event-socketio)
 - [Menjalankan Secara Lokal](#-menjalankan-secara-lokal)
+- [Menjalankan dengan Docker](#-menjalankan-dengan-docker)
 - [Yang Belum Selesai](#-yang-belum-selesai)
 - [Catatan Sebelum Production](#-catatan-sebelum-production)
 
@@ -321,7 +322,11 @@ Dokumentasi lengkap beserta contoh request/response tersedia di Swagger UI: `htt
 | `conversation:leave` | Frontend → Backend | Keluar dari room percakapan |
 | `message:new` | Backend → Frontend | Pesan baru masuk ke percakapan yang sedang dibuka |
 | `conversation:updated` | Backend → Frontend | Ada aktivitas baru di sebuah percakapan (untuk update sidebar) |
-| `presence:online` | Backend → Frontend | Lawan bicara berubah status online/offline |
+| `conversation:deleted` | Backend → Frontend | Sebuah percakapan telah dihapus |
+| `presence:update` | Backend → Frontend | Lawan bicara berubah status online/offline |
+| `presence:sync` | Backend → Frontend | Sinkronisasi status presence semua partner saat connect |
+| `unread:updated` | Backend → Frontend | Total unread count berubah (untuk badge tab browser) |
+| `unread:sync` | Backend → Frontend | Sinkronisasi total unread count saat connect |
 
 ---
 
@@ -380,6 +385,90 @@ npm run dev
 ```
 
 Frontend berjalan di `http://localhost:3000`. Karena keduanya di `localhost`, `SubtleCrypto` tetap berfungsi tanpa HTTPS untuk kebutuhan development.
+
+---
+
+## 🐳 Menjalankan dengan Docker
+
+Docker Compose sudah dikonfigurasi untuk menjalankan **backend** dan **PostgreSQL** secara bersamaan. Dua mode tersedia: development (hot-reload dengan nodemon) dan production.
+
+### Prasyarat
+
+- [Docker](https://docs.docker.com/get-docker/) dan [Docker Compose](https://docs.docker.com/compose/install/) terinstal di mesin Anda.
+
+### 1. Siapkan file environment
+
+```bash
+cp .env.example .env
+```
+
+Sesuaikan nilai di `.env` sesuai kebutuhan. **Jangan** mengubah `DB_HOST` secara manual — Docker Compose akan meng-override-nya ke `db` (nama service PostgreSQL) secara otomatis.
+
+```env
+PORT=4000
+DB_USER=postgres
+DB_PASS=postgres
+DB_NAME=postgres
+JWT_SECRET=ganti_dengan_secret_yang_kuat
+JWT_EXP=1d
+```
+
+### 2. Mode Development
+
+Menjalankan backend dengan **nodemon** (hot-reload saat file berubah) dan volume mount untuk source code:
+
+```bash
+docker compose up --build
+```
+
+Backend berjalan di `http://localhost:4000` dan PostgreSQL di `localhost:5432`.
+
+### 3. Mode Production
+
+Menjalankan backend dengan `node` langsung (tanpa nodemon, tanpa volume mount):
+
+```bash
+docker compose --profile production up --build
+```
+
+### 4. Menjalankan Migrasi dan Seeder
+
+Setelah container berjalan, jalankan migrasi database di dalam container backend:
+
+```bash
+# Development
+docker compose exec backend npx sequelize-cli db:migrate
+
+# Production
+docker compose --profile production exec backend-prod npx sequelize-cli db:migrate
+```
+
+Untuk mengisi data dummy (seeder):
+
+```bash
+docker compose exec backend npx sequelize-cli db:seed:all
+```
+
+### 5. Menghentikan Container
+
+```bash
+# Hentikan semua service
+docker compose down
+
+# Hentikan dan hapus volume database (hati-hati: data akan hilang)
+docker compose down -v
+```
+
+### Catatan Docker
+
+| Perintah | Keterangan |
+|---|---|
+| `docker compose up -d` | Jalankan di background (detached) |
+| `docker compose logs -f backend` | Lihat log backend secara realtime |
+| `docker compose exec backend sh` | Masuk ke shell di dalam container backend |
+| `docker compose exec db psql -U postgres` | Masuk ke PostgreSQL shell |
+
+> **Tips:** Data PostgreSQL disimpan di Docker volume `pgdata` sehingga tidak hilang saat container di-restart. Gunakan `docker compose down -v` hanya jika Anda ingin mereset database sepenuhnya.
 
 ---
 

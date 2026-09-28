@@ -1,0 +1,82 @@
+services:
+  # ──────────────────────────────────────────────────────────
+  # PostgreSQL
+  # ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - akselera
+
+  # ──────────────────────────────────────────────────────────
+  # Backend — Development (default when running `docker compose up`)
+  # ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override DB_HOST so Sequelize talks to the postgres container
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - "${APP_PORT:-4000}:${PORT:-4000}"
+    volumes:
+      # Live-reload: mount source into the container
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - akselera
+
+  # ──────────────────────────────────────────────────────────
+  # Backend — Production (activated with `--profile production`)
+  # ──────────────────────────────────────────────────────────
+  backend-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - "${APP_PORT:-4000}:${PORT:-4000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - akselera
+    profiles:
+      - production
+
+volumes:
+  pgdata:
+
+networks:
+  akselera:
+    driver: bridge
