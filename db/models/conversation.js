@@ -10,11 +10,6 @@ module.exports = (sequelize, DataTypes) => {
         as: "members",
       });
 
-      Conversation.hasMany(models.ConversationKey, {
-        foreignKey: "conversation_id",
-        as: "keys",
-      });
-
       Conversation.hasMany(models.Message, {
         foreignKey: "conversation_id",
         as: "messages",
