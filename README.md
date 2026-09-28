@@ -431,21 +431,35 @@ Menjalankan backend dengan `node` langsung (tanpa nodemon, tanpa volume mount):
 docker compose --profile production up --build
 ```
 
-### 4. Menjalankan Migrasi dan Seeder
+### 4. Migrasi dan Seeder
 
-Setelah container berjalan, jalankan migrasi database di dalam container backend:
+Migrasi dan seeder **dijalankan otomatis** oleh entrypoint script setiap kali container start. Urutannya:
+
+1. Tunggu database siap
+2. `npx sequelize-cli db:migrate`
+3. `npx sequelize-cli db:seed:all`
+4. Start aplikasi (`node` atau `nodemon`)
+
+Anda bisa melihat progress-nya di log:
 
 ```bash
-# Development
-docker compose exec backend npx sequelize-cli db:migrate
-
-# Production
-docker compose --profile production exec backend-prod npx sequelize-cli db:migrate
+docker compose logs -f backend
 ```
 
-Untuk mengisi data dummy (seeder):
+Output yang akan terlihat:
+
+```
+[entrypoint] Waiting for database...
+[entrypoint] Running migrations...
+[entrypoint] Running seeders...
+[entrypoint] Starting application...
+Server Running ⚡ PORT : 4000
+```
+
+Jika perlu menjalankan migrasi atau seeder secara manual:
 
 ```bash
+docker compose exec backend npx sequelize-cli db:migrate
 docker compose exec backend npx sequelize-cli db:seed:all
 ```
 

@@ -23,8 +23,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Entrypoint lives outside /app so volume mounts won't overwrite it
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE ${PORT:-4000}
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["npx", "nodemon", "index.js"]
 
 # ============================================================
@@ -39,9 +44,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Entrypoint lives outside /app so volume mounts won't overwrite it
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Remove dev dependencies if present
 RUN npm prune --omit=dev
 
 EXPOSE ${PORT:-4000}
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["node", "index.js"]
