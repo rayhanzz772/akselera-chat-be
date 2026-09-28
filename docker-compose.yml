@@ -23,7 +23,7 @@ services:
       - akselera
 
   # ──────────────────────────────────────────────────────────
-  # Backend — Development (default when running `docker compose up`)
+  # Backend — Development (activated with `--profile development`)
   # ──────────────────────────────────────────────────────────
   backend:
     build:
@@ -48,6 +48,8 @@ services:
         condition: service_healthy
     networks:
       - akselera
+    profiles:
+      - development
 
   # ──────────────────────────────────────────────────────────
   # Backend — Production (activated with `--profile production`)

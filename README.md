@@ -418,7 +418,7 @@ JWT_EXP=1d
 Menjalankan backend dengan **nodemon** (hot-reload saat file berubah) dan volume mount untuk source code:
 
 ```bash
-docker compose up --build
+docker compose --profile development up --build
 ```
 
 Backend berjalan di `http://localhost:4000` dan PostgreSQL di `localhost:5432`.
@@ -477,8 +477,8 @@ docker compose down -v
 
 | Perintah | Keterangan |
 |---|---|
-| `docker compose up -d` | Jalankan di background (detached) |
-| `docker compose logs -f backend` | Lihat log backend secara realtime |
+| `docker compose --profile development up -d` | Jalankan dev di background (detached) |
+| `docker compose --profile development logs -f backend` | Lihat log backend secara realtime |
 | `docker compose exec backend sh` | Masuk ke shell di dalam container backend |
 | `docker compose exec db psql -U postgres` | Masuk ke PostgreSQL shell |
 
