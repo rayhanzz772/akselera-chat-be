@@ -23,38 +23,9 @@ services:
       - akselera
 
   # ──────────────────────────────────────────────────────────
-  # Backend — Development (activated with `--profile development`)
+  # Backend — Production (default, runs with `docker compose up`)
   # ──────────────────────────────────────────────────────────
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      # Override DB_HOST so Sequelize talks to the postgres container
-      DB_HOST: db
-      DB_PORT: 5432
-    ports:
-      - "${APP_PORT:-4000}:${PORT:-4000}"
-    volumes:
-      # Live-reload: mount source into the container
-      - .:/app
-      - /app/node_modules
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - akselera
-    profiles:
-      - development
-
-  # ──────────────────────────────────────────────────────────
-  # Backend — Production (activated with `--profile production`)
-  # ──────────────────────────────────────────────────────────
-  backend-prod:
     build:
       context: .
       dockerfile: Dockerfile
@@ -73,8 +44,34 @@ services:
         condition: service_healthy
     networks:
       - akselera
+
+  # ──────────────────────────────────────────────────────────
+  # Backend — Development (activated with `--profile development`)
+  # ──────────────────────────────────────────────────────────
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - "${APP_PORT:-4000}:${PORT:-4000}"
+    volumes:
+      # Live-reload: mount source into the container
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - akselera
     profiles:
-      - production
+      - development
 
 volumes:
   pgdata:

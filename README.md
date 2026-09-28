@@ -418,22 +418,22 @@ DB_CONNECTION=postgresql
 JWT_KEY=ganti_dengan_secret_acak_yang_panjang
 ```
 
-### 2. Mode Development
+### 2. Mode Production (Default)
+
+Cukup jalankan `docker compose up` — backend production dan PostgreSQL otomatis berjalan:
+
+```bash
+docker compose up --build
+```
+
+Backend berjalan di `http://localhost:4000` dan PostgreSQL di `localhost:5432`.
+
+### 3. Mode Development
 
 Menjalankan backend dengan **nodemon** (hot-reload saat file berubah) dan volume mount untuk source code:
 
 ```bash
 docker compose --profile development up --build
-```
-
-Backend berjalan di `http://localhost:4000` dan PostgreSQL di `localhost:5432`.
-
-### 3. Mode Production
-
-Menjalankan backend dengan `node` langsung (tanpa nodemon, tanpa volume mount):
-
-```bash
-docker compose --profile production up --build
 ```
 
 ### 4. Migrasi dan Seeder
@@ -482,8 +482,8 @@ docker compose down -v
 
 | Perintah | Keterangan |
 |---|---|
-| `docker compose --profile development up -d` | Jalankan dev di background (detached) |
-| `docker compose --profile development logs -f backend` | Lihat log backend secara realtime |
+| `docker compose up -d` | Jalankan production di background (detached) |
+| `docker compose logs -f backend` | Lihat log backend secara realtime |
 | `docker compose exec backend sh` | Masuk ke shell di dalam container backend |
 | `docker compose exec db psql -U postgres` | Masuk ke PostgreSQL shell |
 
