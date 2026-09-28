@@ -27,6 +27,7 @@ Server menyimpan ciphertext. Kunci privat tidak pernah meninggalkan perangkat.
 - [Fitur](#-fitur)
 - [Arsitektur](#-arsitektur)
 - [Struktur Proyek](#-struktur-proyek)
+- [Persiapan Database](#-persiapan-database)
 - [Stack dan Alasan Memilihnya](#-stack-dan-alasan-memilihnya)
 - [Keamanan dan Enkripsi](#-keamanan-dan-enkripsi)
 - [Alur Utama](#-alur-utama)
@@ -330,6 +331,61 @@ Dokumentasi lengkap beserta contoh request/response tersedia di Swagger UI: `htt
 
 ---
 
+## 🗄️ Persiapan Database
+
+Proyek ini menggunakan **PostgreSQL** (versi 14 ke atas). Ada dua cara menyiapkan database:
+
+### Opsi A: Instalasi Manual (Tanpa Docker)
+
+#### 1. Instal PostgreSQL
+
+| OS | Cara instalasi |
+|---|---|
+| **Windows** | Download installer dari [postgresql.org/download/windows](https://www.postgresql.org/download/windows/) |
+| **macOS** | `brew install postgresql@16 && brew services start postgresql@16` |
+| **Linux (Ubuntu/Debian)** | `sudo apt update && sudo apt install postgresql postgresql-contrib` |
+
+#### 2. Buat Database
+
+Masuk ke PostgreSQL shell dan buat database baru:
+
+```bash
+# Masuk ke psql
+psql -U postgres
+
+# Di dalam psql:
+CREATE DATABASE akselera_chat;
+\q
+```
+
+#### 3. Konfigurasi `.env`
+
+Sesuaikan variabel database di file `.env`:
+
+```env
+DB_USER=postgres
+DB_PASS=postgres
+DB_NAME=akselera_chat
+DB_HOST=localhost
+DB_PORT=5432
+DB_CONNECTION=postgresql
+PORT=8001
+```
+
+### Opsi B: Menggunakan Docker (Otomatis)
+
+Jika menggunakan Docker Compose, PostgreSQL dan database-nya **dibuat otomatis** oleh compose. Tidak perlu instalasi manual.
+
+Cukup pastikan `.env` sudah ada (Docker Compose akan override `DB_HOST` ke `db` secara otomatis):
+
+```bash
+cp .env.example .env
+```
+
+Lihat bagian [Menjalankan dengan Docker](#-menjalankan-dengan-docker) untuk instruksi lengkap.
+
+---
+
 ## 🚀 Menjalankan Secara Lokal
 
 ### 1. Clone repositori Backend
@@ -353,12 +409,14 @@ DB_NAME=akselera_chat
 DB_HOST=localhost
 DB_PORT=5432
 DB_CONNECTION=postgresql
+PORT=8001
 
 JWT_KEY=ganti_dengan_secret_acak_yang_panjang
 ```
 
 ```bash
 npm run migrate
+npm run seed
 npm run dev
 ```
 
