@@ -1,0 +1,42 @@
+name: Deploy to Dokploy
+
+on:
+    push:
+        branches:
+            - main
+            - staging
+    workflow_dispatch:
+
+jobs:
+    deploy:
+        name: Trigger Dokploy Auto Deploys
+        runs-on: ubuntu-latest
+        steps:
+            - name: Trigger Dokploy Webhook
+              env:
+                  DOKPLOY_WEBHOOK_URL: ${{ github.ref_name == 'staging' && secrets.DOKPLOY_DEPLOY_WEBHOOK_STAGING || secrets.DOKPLOY_DEPLOY_WEBHOOK }}
+                  DEPLOY_ENV: ${{ github.ref_name == 'staging' && 'Staging' || 'Production' }}
+              run: |
+                  if [ -z "$DOKPLOY_WEBHOOK_URL" ]; then
+                    echo "::error::Secret webhook untuk $DEPLOY_ENV belum diset di GitHub Secrets!"
+                    exit 1
+                  fi
+
+                  echo "Mengirim request auto-deploy ke Dokploy ($DEPLOY_ENV - branch ${GITHUB_REF_NAME})..."
+                  HTTP_STATUS=$(curl -s -L --post301 --post302 -o response.txt -w "%{http_code}" -X POST \
+                    -H "Content-Type: application/json" \
+                    -H "X-GitHub-Event: push" \
+                    -d "{\"ref\":\"refs/heads/${GITHUB_REF_NAME}\",\"repository\":{\"name\":\"automative-marketplace\",\"full_name\":\"${GITHUB_REPOSITORY}\"}}" \
+                    "$DOKPLOY_WEBHOOK_URL")
+
+                  echo "HTTP Status: $HTTP_STATUS"
+                  echo "Response:"
+                  cat response.txt
+                  echo ""
+
+                  if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+                    echo "✅ Deployment ke $DEPLOY_ENV berhasil ditrigger!"
+                  else
+                    echo "::error::Gagal trigger deployment ke Dokploy ($DEPLOY_ENV). HTTP Status: $HTTP_STATUS"
+                    exit 1
+                  fi
