@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken')
-const { hashPassword, compare } = require('../../utils/bcrypt')
+const { hashPassword, compare } = require('../../utils/argon')
 const db = require('../../../db/models')
 const { api } = require('../../utils/api')
 const { HttpStatusCode } = require('axios')
