@@ -405,12 +405,14 @@ cp .env.example .env
 Sesuaikan nilai di `.env` sesuai kebutuhan. **Jangan** mengubah `DB_HOST` secara manual — Docker Compose akan meng-override-nya ke `db` (nama service PostgreSQL) secara otomatis.
 
 ```env
-PORT=4000
 DB_USER=postgres
 DB_PASS=postgres
-DB_NAME=postgres
-JWT_SECRET=ganti_dengan_secret_yang_kuat
-JWT_EXP=1d
+DB_NAME=akselera_chat
+DB_HOST=localhost
+DB_PORT=5432
+DB_CONNECTION=postgresql
+
+JWT_KEY=ganti_dengan_secret_acak_yang_panjang
 ```
 
 ### 2. Mode Development
