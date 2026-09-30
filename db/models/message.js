@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "sender_id",
         as: "sender",
       });
+
+      Message.belongsTo(models.Message, {
+        foreignKey: "reply_to_message_id",
+        as: "reply_to_message",
+      });
     }
   }
 
@@ -33,6 +38,11 @@ module.exports = (sequelize, DataTypes) => {
       sender_id: {
         type: DataTypes.UUID,
         allowNull: false,
+      },
+
+      reply_to_message_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
       },
 
       ciphertext: {

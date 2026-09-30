@@ -161,6 +161,7 @@ Setiap message memiliki:
 - `ciphertext` — isi pesan yang telah dienkripsi.
 - `iv` — initialization vector yang digunakan dalam enkripsi.
 - `auth_tag` — authentication tag untuk verifikasi integritas ciphertext.
+- `reply_to_message_id` — ID pesan yang dibalas, atau `null`; teks kutipan tidak disimpan di backend.
 - `created_at` — waktu pesan dibuat.
 
 Isi pesan tidak disimpan sebagai plaintext. Database hanya menyimpan data ciphertext dan parameter kriptografi yang diperlukan.
@@ -307,8 +308,8 @@ Di sisi lain, password itu sendiri dikirim sebagai plaintext lewat HTTPS ke back
 | `GET` | `/conversations` | Daftar percakapan milik pengguna |
 | `POST` | `/conversations` | Buat percakapan baru |
 | `DELETE` | `/conversations/:id` | Hapus percakapan |
-| `GET` | `/conversations/:id/messages` | Riwayat pesan (paginated) |
-| `POST` | `/messages` | Kirim pesan (ciphertext + wrapped keys) |
+| `GET` | `/conversations/:id/messages` | Riwayat pesan (paginated), termasuk `reply_to_message_id` |
+| `POST` | `/conversations/:id/messages` | Kirim pesan terenkripsi, opsional dengan `reply_to_message_id` |
 | `PATCH` | `/conversations/:id/read` | Tandai percakapan sudah dibaca |
 
 Dokumentasi lengkap beserta contoh request/response tersedia di Swagger UI: `http://localhost:8000/api/docs`.
@@ -321,7 +322,7 @@ Dokumentasi lengkap beserta contoh request/response tersedia di Swagger UI: `htt
 |---|---|---|
 | `conversation:join` | Frontend → Backend | Bergabung ke room sebuah percakapan |
 | `conversation:leave` | Frontend → Backend | Keluar dari room percakapan |
-| `message:new` | Backend → Frontend | Pesan baru masuk ke percakapan yang sedang dibuka |
+| `message:new` | Backend → Frontend | Pesan baru masuk, termasuk `reply_to_message_id` jika membalas |
 | `conversation:updated` | Backend → Frontend | Ada aktivitas baru di sebuah percakapan (untuk update sidebar) |
 | `conversation:deleted` | Backend → Frontend | Sebuah percakapan telah dihapus |
 | `presence:update` | Backend → Frontend | Lawan bicara berubah status online/offline |

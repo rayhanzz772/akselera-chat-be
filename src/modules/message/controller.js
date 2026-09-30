@@ -39,14 +39,41 @@ class Controller {
         }
       }
 
+      const replyToMessageId = validation.data.reply_to_message_id ?? null
+      if (replyToMessageId) {
+        const replyTargets = await db.sequelize.query(
+          `
+            SELECT 1
+            FROM messages
+            WHERE id = :replyToMessageId
+              AND conversation_id = :conversationId
+            LIMIT 1
+          `,
+          {
+            type: queryType,
+            replacements: {
+              replyToMessageId,
+              conversationId: req.conversationId
+            }
+          }
+        )
+
+        if (replyTargets.length === 0) {
+          throw {
+            code: HttpStatusCode.BadRequest,
+            message: 'Reply target message not found in this conversation'
+          }
+        }
+      }
+
       const messageId = randomUUID()
       const rows = await db.sequelize.query(
         `
           INSERT INTO messages
-            (id, conversation_id, sender_id, ciphertext, iv, auth_tag)
+            (id, conversation_id, sender_id, ciphertext, iv, auth_tag, reply_to_message_id)
           VALUES
-            (:id, :conversationId, :senderId, :ciphertext, :iv, :authTag)
-          RETURNING id, conversation_id, sender_id, ciphertext, iv, auth_tag, created_at
+            (:id, :conversationId, :senderId, :ciphertext, :iv, :authTag, :replyToMessageId)
+          RETURNING id, conversation_id, sender_id, ciphertext, iv, auth_tag, reply_to_message_id, created_at
         `,
         {
           type: queryType,
@@ -56,7 +83,8 @@ class Controller {
             senderId: req.user.id,
             ciphertext: validation.data.ciphertext,
             iv: validation.data.iv,
-            authTag: validation.data.auth_tag
+            authTag: validation.data.auth_tag,
+            replyToMessageId
           }
         }
       )
@@ -118,7 +146,7 @@ class Controller {
 
       const rows = await db.sequelize.query(
         `
-          SELECT id, conversation_id, sender_id, ciphertext, iv, auth_tag, created_at
+          SELECT id, conversation_id, sender_id, ciphertext, iv, auth_tag, reply_to_message_id, created_at
           FROM messages
           WHERE conversation_id = :conversationId
           ${cursorClause}
